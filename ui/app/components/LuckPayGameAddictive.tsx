@@ -7,6 +7,7 @@ import { PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { resolve } from '@bonfida/spl-name-service'
 import { BrowserQRCodeReader } from '@zxing/browser'
 import toast, { Toaster } from 'react-hot-toast'
+import Confetti from 'react-confetti'
 import { useLuckPaySimple } from '../hooks/useLuckPaySimple'
 
 // QR Code Scanner Component
@@ -143,20 +144,36 @@ function CoinFlip({ isSigning, isFlipping, result, onComplete, transactionSignat
   amount?: string
 }) {
   const [showResult, setShowResult] = useState(false)
+  const [showDetails, setShowDetails] = useState(false)
+  const [showConfetti, setShowConfetti] = useState(false)
 
   useEffect(() => {
     if (result && !showResult) {
+      // Show result first with small modal
       setTimeout(() => {
         setShowResult(true)
-        // Don't auto-close anymore, let user close manually
-      }, 3000) // 3 second animation
+
+        // Show confetti if player won
+        if (result === 'heads') {
+          setShowConfetti(true)
+          // Stop confetti after 3 seconds
+          setTimeout(() => setShowConfetti(false), 3000)
+        }
+
+        // Then expand to show details after a brief moment
+        setTimeout(() => {
+          setShowDetails(true)
+        }, 800) // Wait 800ms before expanding
+      }, 500) // Small delay for smooth transition
     }
   }, [result, showResult, onComplete])
 
-  // Reset showResult when component starts fresh (new game)
+  // Reset states when component starts fresh (new game)
   useEffect(() => {
     if (isSigning && !isFlipping && !result) {
       setShowResult(false)
+      setShowDetails(false)
+      setShowConfetti(false)
     }
   }, [isSigning, isFlipping, result])
 
@@ -174,7 +191,17 @@ function CoinFlip({ isSigning, isFlipping, result, onComplete, transactionSignat
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl p-8 text-center shadow-2xl max-w-md w-full">
+      {showConfetti && (
+        <Confetti
+          width={window.innerWidth}
+          height={window.innerHeight}
+          recycle={false}
+          numberOfPieces={200}
+        />
+      )}
+      <div className={`bg-white rounded-3xl text-center shadow-2xl transition-all duration-500 ease-out ${
+        showDetails ? 'p-8 max-w-md w-full' : 'p-6 max-w-xs w-auto'
+      }`}>
         {/* Coin Animation */}
         <div className="coin-container mb-6">
           <div className={`coin ${isFlipping ? 'flipping' : showResult ? (result === 'heads' ? 'show-heads' : 'show-tails') : ''}`}>
@@ -197,9 +224,9 @@ function CoinFlip({ isSigning, isFlipping, result, onComplete, transactionSignat
           </div>
         )}
 
-        {/* Payment Details */}
-        {showResult && (
-          <div className="bg-gray-50 rounded-2xl p-4 mb-6 text-left">
+        {/* Payment Details - Only show after expansion */}
+        {showDetails && (
+          <div className="bg-gray-50 rounded-2xl p-4 mb-6 text-left opacity-0 animate-fade-in">
             <div className="text-sm font-semibold text-gray-700 mb-3">Payment Details</div>
 
             {recipient && (
@@ -233,9 +260,9 @@ function CoinFlip({ isSigning, isFlipping, result, onComplete, transactionSignat
           </div>
         )}
 
-        {/* Action Buttons */}
-        {showResult && (
-          <div className="space-y-3">
+        {/* Action Buttons - Only show after expansion */}
+        {showDetails && (
+          <div className="space-y-3 opacity-0 animate-fade-in">
             {transactionSignature && (
               <button
                 onClick={openInExplorer}
@@ -253,6 +280,16 @@ function CoinFlip({ isSigning, isFlipping, result, onComplete, transactionSignat
               Close
             </button>
           </div>
+        )}
+
+        {/* Quick close option when showing just result */}
+        {showResult && !showDetails && (
+          <button
+            onClick={onComplete}
+            className="mt-4 text-gray-500 hover:text-gray-700 text-sm"
+          >
+            Close
+          </button>
         )}
       </div>
 
@@ -301,17 +338,17 @@ function CoinFlip({ isSigning, isFlipping, result, onComplete, transactionSignat
           }
 
           .flipping {
-            animation: spin 3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            animation: spin 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
           }
 
           .show-heads {
             transform: rotateY(0deg);
-            transition: transform 0.6s ease-out;
+            transition: transform 0.8s ease-out;
           }
 
           .show-tails {
             transform: rotateY(180deg);
-            transition: transform 0.6s ease-out;
+            transition: transform 0.8s ease-out;
           }
 
           @keyframes spin {
@@ -330,6 +367,21 @@ function CoinFlip({ isSigning, isFlipping, result, onComplete, transactionSignat
             100% {
               transform: rotateY(3600deg) rotateX(720deg);
             }
+          }
+
+          @keyframes fade-in {
+            from {
+              opacity: 0;
+              transform: translateY(10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+
+          .animate-fade-in {
+            animation: fade-in 0.5s ease-out forwards;
           }
         `}</style>
       </div>
@@ -522,7 +574,7 @@ export default function LuckPayGameAddictive() {
 
       const betAmountLamports = amountFloat * LAMPORTS_PER_SOL
 
-      // Start the game - this will show "Signing transaction..." first
+      // Start the game transaction and wait for signing
       const result = await luckPay.playGame(
         betAmountLamports,
         recipientPubkey,
@@ -537,11 +589,14 @@ export default function LuckPayGameAddictive() {
       setIsSigning(false)
       setIsFlipping(true)
 
-      // Show coin flip animation for 3 seconds, then show result
+      // Show coin flip animation, then smoothly transition to result
+      const finalResult = result.result.coinResult as 'heads' | 'tails'
+
       setTimeout(() => {
         setIsFlipping(false)
-        setFlipResult(result.result.coinResult as 'heads' | 'tails')
-      }, 3000)
+        // Set result immediately so coin shows correct side
+        setFlipResult(finalResult)
+      }, 2800) // Slightly shorter to allow for smooth transition
 
     } catch (error: any) {
       console.error('Game error:', error)
