@@ -574,29 +574,31 @@ export default function LuckPayGameAddictive() {
 
       const betAmountLamports = amountFloat * LAMPORTS_PER_SOL
 
-      // Start the game transaction and wait for signing
+      // Start the game with a callback for when signing completes
       const result = await luckPay.playGame(
         betAmountLamports,
         recipientPubkey,
         'heads', // Always heads for simplicity
-        100 // Max risk
+        100, // Max risk
+        (signature: string) => {
+          // Transaction signed! Start coin animation while waiting for confirmation
+          setIsSigning(false)
+          setIsFlipping(true)
+          setTransactionSignature(signature)
+        }
       )
 
-      // Store transaction signature for explorer link
-      setTransactionSignature(result.signature || '')
+      // Transaction signature already set in callback
+      // Store final result
 
-      // Once signed and confirmed, start the coin flip animation
-      setIsSigning(false)
-      setIsFlipping(true)
-
-      // Show coin flip animation, then smoothly transition to result
+      // Continue spinning for at least 2.8 seconds total, then show result
       const finalResult = result.result.coinResult as 'heads' | 'tails'
 
       setTimeout(() => {
         setIsFlipping(false)
         // Set result immediately so coin shows correct side
         setFlipResult(finalResult)
-      }, 2800) // Slightly shorter to allow for smooth transition
+      }, 2800) // Keep minimum animation time for good UX
 
     } catch (error: any) {
       console.error('Game error:', error)

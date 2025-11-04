@@ -137,6 +137,7 @@ export function useLuckPaySimple() {
     recipient: PublicKey,
     choice: 'heads' | 'tails',
     discountPercentage: number = 100, // 0-100, where 100 = free, 50 = 50% discount
+    onTransactionSigned?: (signature: string) => void
   ) => {
     if (!publicKey || !sendTransaction) {
       throw new Error('Wallet not connected')
@@ -351,6 +352,11 @@ Game PDA: ${gamePda.toBase58()}`)
         console.log('📤 Sending complete game transaction...')
         gameSignature = await sendTransaction(transaction, connection)
         console.log('✅ Complete game transaction sent! Signature:', gameSignature)
+
+        // Notify that transaction has been signed
+        if (onTransactionSigned) {
+          onTransactionSigned(gameSignature)
+        }
       } catch (sendError: any) {
         console.error('❌ Failed to send complete game transaction:', sendError)
         console.error('❌ Complete game send error details:', {
