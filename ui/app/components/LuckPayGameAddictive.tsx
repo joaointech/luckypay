@@ -589,16 +589,29 @@ export default function LuckPayGameAddictive() {
             // Pre-connection state
             <div className="text-center space-y-6">
               <div className="w-16 h-16 bg-purple-600 rounded-full mx-auto flex items-center justify-center text-2xl">
-                🎲
+                🪙
               </div>
 
               <div>
-                <h1 className="text-2xl font-bold mb-2">LuckPay</h1>
-                <p className="text-gray-400 text-sm leading-relaxed">
-                  Send money the fun way:<br />
-                  50% chance you pay nothing.<br />
-                  If you lose, the payment still goes through.
-                </p>
+                <h1 className="text-2xl font-bold mb-4">LuckPay</h1>
+                <div className="text-left space-y-3 text-sm text-gray-300">
+                  <div className="bg-[#1a1a2e] rounded-lg p-3 border border-gray-600">
+                    <div className="font-semibold text-white mb-1">How it works:</div>
+                    <div>• Enter amount and recipient address</div>
+                    <div>• We lock 2x your send amount</div>
+                    <div>• Flip a coin - 50/50 chance</div>
+                  </div>
+
+                  <div className="bg-green-900/30 border border-green-600/50 rounded-lg p-3">
+                    <div className="font-semibold text-green-200 mb-1">🎉 If you WIN:</div>
+                    <div className="text-green-300">Payment sent for FREE! Get your locked amount back</div>
+                  </div>
+
+                  <div className="bg-red-900/30 border border-red-600/50 rounded-lg p-3">
+                    <div className="font-semibold text-red-200 mb-1">😔 If you LOSE:</div>
+                    <div className="text-red-300">Payment costs 2x (your locked amount is used)</div>
+                  </div>
+                </div>
               </div>
 
               <WalletMultiButton className="!bg-purple-600 hover:!bg-purple-700 !rounded-xl !font-semibold !py-3 !px-6 !text-sm !transition-all" />
